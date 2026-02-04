@@ -1,0 +1,16 @@
+Name,Age,Salary,Department,Purchased
+John Doe,28,55000,Sales,Yes
+Jane Smith,34,72000,Engineering,Yes
+Bob Johnson,45,85000,Management,No
+Alice Williams,29,58000,Marketing,Yes
+Charlie Brown,38,68000,Sales,No
+Diana Prince,31,75000,Engineering,Yes
+Eve Anderson,27,52000,Marketing,Yes
+Frank Miller,42,95000,Management,No
+Grace Lee,33,65000,Engineering,Yes
+Henry Davis,36,70000,Sales,Yes
+Ivy Chen,30,60000,Marketing,No
+Jack Wilson,44,88000,Management,Yes
+Kelly Moore,26,48000,Sales,Yes
+Leo Taylor,39,78000,Engineering,No
+Mia Jackson,32,63000,Marketing,Yes
