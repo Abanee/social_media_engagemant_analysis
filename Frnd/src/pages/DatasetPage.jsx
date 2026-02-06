@@ -4,16 +4,26 @@ import Papa from 'papaparse';
 import { motion } from 'framer-motion';
 import { Upload, FileText, Edit2, Check, X, Trash2 } from 'lucide-react';
 import useDataStore from '../store/useDataStore';
+import apiService from '../services/apiService';
 import { toast } from 'sonner';
 
 const DatasetPage = () => {
-  const { rawData, headers, setRawData, setHeaders, updateHeader, resetData } = useDataStore();
+  const { rawData, headers, setRawData, setHeaders, updateHeader, resetData, setDatasetId } = useDataStore();
   const [editingHeader, setEditingHeader] = useState(null);
   const [editValue, setEditValue] = useState('');
 
-  const onDrop = useCallback((acceptedFiles) => {
+  const onDrop = useCallback(async (acceptedFiles) => {
     const file = acceptedFiles[0];
     if (!file) return;
+
+    try {
+      const uploadResponse = await apiService.uploadDataset(file);
+      setDatasetId(uploadResponse.dataset.id);
+      toast.success('Uploaded dataset to backend.');
+    } catch (error) {
+      toast.error('Failed to upload dataset to backend.');
+      return;
+    }
 
     Papa.parse(file, {
       header: true,
@@ -29,7 +39,7 @@ const DatasetPage = () => {
         toast.error('Failed to parse CSV: ' + error.message);
       }
     });
-  }, [setRawData, setHeaders]);
+  }, [setRawData, setHeaders, setDatasetId]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,

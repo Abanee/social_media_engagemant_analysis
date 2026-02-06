@@ -2,30 +2,32 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { GitBranch, Play, CheckCircle, AlertCircle } from 'lucide-react';
 import useDataStore from '../store/useDataStore';
+import apiService from '../services/apiService';
 import { toast } from 'sonner';
 
 const PreprocessingPage = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [completedSteps, setCompletedSteps] = useState([]);
-  const { rawData, handleNulls } = useDataStore();
+  const { rawData, datasetId, setPreprocessingResults } = useDataStore();
 
   const runPreprocessing = async (operation) => {
-    if (rawData.length === 0) {
+    if (rawData.length === 0 || !datasetId) {
       toast.error('Please upload data first!');
       return;
     }
 
     setIsProcessing(true);
 
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    if (operation === 'nulls') {
-      handleNulls();
+    try {
+      const response = await apiService.preprocessDataset(datasetId);
+      setPreprocessingResults(response.summary);
+      setCompletedSteps(prev => [...prev, operation]);
+      toast.success('Preprocessing complete!');
+    } catch (error) {
+      toast.error('Preprocessing failed.');
+    } finally {
+      setIsProcessing(false);
     }
-
-    setCompletedSteps(prev => [...prev, operation]);
-    toast.success('Preprocessing complete!');
-    setIsProcessing(false);
   };
 
   const steps = [

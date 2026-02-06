@@ -1,0 +1,9 @@
+Django>=4.2
+djangorestframework>=3.14
+django-cors-headers>=4.3
+pandas>=2.2
+numpy>=1.26
+scikit-learn>=1.4
+lightgbm>=4.3
+catboost>=1.2
+joblib>=1.3

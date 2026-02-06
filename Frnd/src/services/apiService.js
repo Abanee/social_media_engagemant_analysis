@@ -1,13 +1,12 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000/api'; // Update with your Django backend URL
+const API_BASE_URL = 'http://localhost:8000/api';
 
 const apiService = {
-  // Upload and process CSV
-  async uploadCSV(file) {
+  async uploadDataset(file) {
     const formData = new FormData();
     formData.append('file', file);
-    
+
     const response = await axios.post(`${API_BASE_URL}/upload/`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -16,58 +15,32 @@ const apiService = {
     return response.data;
   },
 
-  // Get data preview
-  async getDataPreview() {
-    const response = await axios.get(`${API_BASE_URL}/preview/`);
+  async preprocessDataset(datasetId) {
+    const response = await axios.post(`${API_BASE_URL}/preprocess/${datasetId}/`);
     return response.data;
   },
 
-  // Preprocessing
-  async preprocessData(options) {
-    const response = await axios.post(`${API_BASE_URL}/preprocess/`, options);
+  async fetchEDA(datasetId) {
+    const response = await axios.get(`${API_BASE_URL}/eda/${datasetId}/`);
     return response.data;
   },
 
-  // EDA Processing
-  async performEDA() {
-    const response = await axios.get(`${API_BASE_URL}/eda/`);
-    return response.data;
-  },
-
-  // Train Regression Model (LightGBM)
-  async trainRegression(targetColumn, features) {
-    const response = await axios.post(`${API_BASE_URL}/train/regression/`, {
-      target: targetColumn,
-      features: features,
-      model_type: 'lightgbm'
+  async trainModel(datasetId, targetColumn, problemType) {
+    const response = await axios.post(`${API_BASE_URL}/train/`, {
+      dataset_id: datasetId,
+      target_column: targetColumn,
+      problem_type: problemType,
     });
     return response.data;
   },
 
-  // Train Classification Model (CatBoost)
-  async trainClassification(targetColumn, features) {
-    const response = await axios.post(`${API_BASE_URL}/train/classification/`, {
-      target: targetColumn,
-      features: features,
-      model_type: 'catboost'
-    });
-    return response.data;
-  },
-
-  // Make Predictions
-  async makePrediction(modelType, features) {
+  async makePrediction(modelId, features) {
     const response = await axios.post(`${API_BASE_URL}/predict/`, {
-      model_type: modelType,
-      features: features
+      model_id: modelId,
+      features: features,
     });
     return response.data;
   },
-
-  // Get Visualizations
-  async getVisualizations() {
-    const response = await axios.get(`${API_BASE_URL}/visualizations/`);
-    return response.data;
-  }
 };
 
 export default apiService;
