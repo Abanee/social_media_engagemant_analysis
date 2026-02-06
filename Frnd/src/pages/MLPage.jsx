@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import apiService from '../services/apiService';
 
 const MLPage = () => {
-  const { rawData, headers } = useDataStore();
+  const { rawData, headers, datasetId } = useDataStore();
 
   // State management
   const [activeCard, setActiveCard] = useState('lightgbm');
@@ -14,6 +14,7 @@ const MLPage = () => {
   const [isTrained, setIsTrained] = useState(false);
   const [trainingProgress, setTrainingProgress] = useState(0);
   const [trainingMetrics, setTrainingMetrics] = useState(null);
+  const [trainedModelId, setTrainedModelId] = useState(null);
   const [predictionResult, setPredictionResult] = useState(null);
   
   // Prediction section states
@@ -54,10 +55,19 @@ const MLPage = () => {
       return;
     }
 
+    if (!datasetId) {
+      toast.error('Please upload your dataset to the backend first.');
+      return;
+    }
+
+    if (!targetColumn) {
+      toast.error('Please select a target column for training.');
+      return;
+    }
+
     setIsTraining(true);
     setTrainingProgress(0);
 
-    // Simulate training progress
     const progressInterval = setInterval(() => {
       setTrainingProgress(prev => {
         if (prev >= 95) {
@@ -69,52 +79,22 @@ const MLPage = () => {
     }, 300);
 
     try {
-      // Call backend API for training - using full dataset
-      let response;
       const algorithmType = activeCard === 'lightgbm' ? 'regression' : 'classification';
-      
-      // In a real scenario, you'd send the dataset to backend
-      // For now, we'll simulate a response
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Simulated response based on algorithm
-      const simulatedResponse = {
-        success: true,
-        algorithm: activeCard === 'lightgbm' ? 'LightGBM' : 'CatBoost',
-        dataset_size: rawData.length,
-        features_count: headers.length,
-        metrics: activeCard === 'lightgbm' ? {
-          mse: 0.0234,
-          r2_score: 0.876,
-          mae: 0.045,
-          training_time: '2.3s'
-        } : {
-          accuracy: 0.892,
-          f1_score: 0.878,
-          precision: 0.901,
-          recall: 0.856,
-          training_time: '1.8s'
-        },
-        model_id: `model_${Date.now()}`
-      };
+      const response = await apiService.trainModel(datasetId, targetColumn, algorithmType);
+      const metrics = { ...response.model.metrics };
+      delete metrics.feature_columns;
 
-      // Complete progress
       setTrainingProgress(100);
-      setTimeout(() => {
-        clearInterval(progressInterval);
-      }, 500);
-
-      // Process response
-      setTrainingMetrics(simulatedResponse.metrics);
+      setTrainingMetrics(metrics);
       setIsTrained(true);
-      
-      // Add to training history
+      setTrainedModelId(response.model.id);
+
       const newTraining = {
         timestamp: new Date().toLocaleTimeString(),
         algorithm: activeCard === 'lightgbm' ? 'LightGBM' : 'CatBoost',
         dataset_size: rawData.length,
         features: headers.length,
-        model_id: simulatedResponse.model_id,
+        model_id: response.model.id,
         status: 'completed'
       };
       setTrainingHistory(prev => [newTraining, ...prev.slice(0, 4)]);
@@ -123,11 +103,11 @@ const MLPage = () => {
         description: `Trained on ${rawData.length} records with ${headers.length} features`
       });
     } catch (error) {
-      clearInterval(progressInterval);
       toast.error('Training failed', {
-        description: error.message || 'Please check your data and try again'
+        description: error.response?.data?.error || error.message || 'Please check your data and try again'
       });
     } finally {
+      clearInterval(progressInterval);
       setTimeout(() => {
         setIsTraining(false);
         setTrainingProgress(0);
@@ -141,7 +121,7 @@ const MLPage = () => {
       return;
     }
 
-    if (!isTrained) {
+    if (!isTrained || !trainedModelId) {
       toast.error('Please train the model first');
       return;
     }
@@ -158,36 +138,24 @@ const MLPage = () => {
 
     try {
       // Prepare data for prediction
-      const predictionData = {
-        algorithm: activeCard,
-        target_column: targetColumn,
-        features: featureValues,
-        model_id: trainingHistory[0]?.model_id
-      };
+      const response = await apiService.makePrediction(trainedModelId, featureValues);
+      const predictedValue = response.predictions?.[0];
 
-      // Call backend API for prediction
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Simulate prediction response
-      const simulatedPrediction = {
-        success: true,
-        predicted_value: activeCard === 'lightgbm' 
-          ? `${(Math.random() * 1000).toFixed(2)}` 
-          : ['Low', 'Medium', 'High', 'Viral'][Math.floor(Math.random() * 4)],
-        confidence: Math.floor(Math.random() * 30) + 70,
+      const predictionPayload = {
+        predicted_value: predictedValue,
         feature_values: featureValues,
         algorithm: activeCard === 'lightgbm' ? 'LightGBM Regression' : 'CatBoost Classification',
         timestamp: new Date().toLocaleTimeString()
       };
 
-      setPredictionResult(simulatedPrediction);
+      setPredictionResult(predictionPayload);
       
       toast.success('Prediction generated successfully!', {
-        description: `Predicted ${targetColumn} with ${simulatedPrediction.confidence}% confidence`
+        description: `Predicted ${targetColumn} successfully`
       });
     } catch (error) {
       toast.error('Prediction failed', {
-        description: error.message || 'Please try again'
+        description: error.response?.data?.error || error.message || 'Please try again'
       });
     } finally {
       setIsPredicting(false);
@@ -198,6 +166,7 @@ const MLPage = () => {
     setIsTrained(false);
     setTrainingMetrics(null);
     setPredictionResult(null);
+    setTrainedModelId(null);
     toast.info('Model reset. Ready for new training.');
   };
 
