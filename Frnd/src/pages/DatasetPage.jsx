@@ -1,39 +1,85 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
 import { motion } from 'framer-motion';
 import { Upload, FileText, Edit2, Check, X, Trash2 } from 'lucide-react';
 import useDataStore from '../store/useDataStore';
+import apiService from '../services/apiService';
 import { toast } from 'sonner';
 
 const DatasetPage = () => {
-  const { rawData, headers, setRawData, setHeaders, updateHeader, resetData } = useDataStore();
+  const { rawData, headers, setRawData, setHeaders, updateHeader, resetData, setDatasetId } = useDataStore();
   const [editingHeader, setEditingHeader] = useState(null);
   const [editValue, setEditValue] = useState('');
 
-  const onDrop = useCallback((acceptedFiles) => {
+  const parseFile = (file) => {
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    if (extension === 'csv') {
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          if (results.data.length > 0) {
+            setRawData(results.data);
+            setHeaders(Object.keys(results.data[0]));
+            toast.success(`Loaded ${results.data.length} rows successfully!`);
+          }
+        },
+        error: (error) => {
+          toast.error('Failed to parse CSV: ' + error.message);
+        }
+      });
+      return;
+    }
+
+    if (extension === 'xlsx' || extension === 'xls') {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const data = new Uint8Array(event.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+        if (rows.length > 0) {
+          setRawData(rows);
+          setHeaders(Object.keys(rows[0]));
+          toast.success(`Loaded ${rows.length} rows successfully!`);
+        }
+      };
+      reader.onerror = () => {
+        toast.error('Failed to read Excel file.');
+      };
+      reader.readAsArrayBuffer(file);
+      return;
+    }
+
+    toast.error('Unsupported file type.');
+  };
+
+  const onDrop = useCallback(async (acceptedFiles) => {
     const file = acceptedFiles[0];
     if (!file) return;
 
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        if (results.data.length > 0) {
-          setRawData(results.data);
-          setHeaders(Object.keys(results.data[0]));
-          toast.success(`Loaded ${results.data.length} rows successfully!`);
-        }
-      },
-      error: (error) => {
-        toast.error('Failed to parse CSV: ' + error.message);
-      }
-    });
-  }, [setRawData, setHeaders]);
+    try {
+      const uploadResponse = await apiService.uploadDataset(file);
+      setDatasetId(uploadResponse.dataset.id);
+      toast.success('Uploaded dataset to backend.');
+    } catch (error) {
+      toast.error('Failed to upload dataset to backend.');
+      return;
+    }
+
+    parseFile(file);
+  }, [setRawData, setHeaders, setDatasetId]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { 'text/csv': ['.csv'] },
+    accept: {
+      'text/csv': ['.csv'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'application/vnd.ms-excel': ['.xls']
+    },
     maxFiles: 1
   });
 

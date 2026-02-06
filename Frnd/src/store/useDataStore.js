@@ -5,14 +5,15 @@ const useDataStore = create((set) => ({
   rawData: [],
   headers: [],
   processedData: [],
-  
+  datasetId: null,
+
   // ML State
   targetColumn: '',
   modelType: 'regression', // 'regression' or 'classification'
   modelResults: null,
   predictionResult: null,
   isLoading: false,
-  
+
   // Analysis Results
   edaResults: null,
   preprocessingResults: null,
@@ -21,7 +22,8 @@ const useDataStore = create((set) => ({
   // Actions
   setRawData: (data) => set({ rawData: data }),
   setHeaders: (headers) => set({ headers }),
-  
+  setDatasetId: (datasetId) => set({ datasetId }),
+
   updateHeader: (oldHeader, newHeader) => set((state) => {
     const newHeaders = state.headers.map(h => h === oldHeader ? newHeader : h);
     const newRawData = state.rawData.map(row => {
@@ -49,6 +51,7 @@ const useDataStore = create((set) => ({
     rawData: [],
     headers: [],
     processedData: [],
+    datasetId: null,
     targetColumn: '',
     modelType: 'regression',
     modelResults: null,
