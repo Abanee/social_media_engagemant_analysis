@@ -6,14 +6,6 @@ const AuthPage = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
-  // const handleSubmit = (e) => {
-  //   e.preventDefault();
-  //   setIsLoading(true);
-  //   // Simulate API call
-  //   setTimeout(() => {
-  //     setIsLoading(false);
-  //     if (onLogin) onLogin(); // Trigger login success
-  //   }, 1500);
 
     const handleSubmit = (e) => {
     e.preventDefault();
